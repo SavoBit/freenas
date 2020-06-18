@@ -1,3 +1,5 @@
+import asyncio
+
 from middlewared.utils import osc, run
 
 from .base import SimpleService
@@ -21,6 +23,9 @@ class ISCSITargetService(SimpleService):
                 self.middleware.logger.error(
                     "Failed to set sysctl kern.cam.ctl.ha_peer : %s", cp.stderr.decode()
                 )
+
+    async def after_stop(self):
+        asyncio.ensure_future(self.middleware.call("iscsi.extent.remove_alerts_for_unlocked_datasets"))
 
     async def reload(self):
         if osc.IS_LINUX:
