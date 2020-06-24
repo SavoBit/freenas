@@ -1700,7 +1700,7 @@ class PoolService(CRUDService):
                     )
 
                 unlock_job = self.middleware.call_sync(
-                    'pool.dataset.unlock', pool['name'], {'restart_attachments': False, 'recursive': True}
+                    'pool.dataset.unlock', pool['name'], {'toggle_attachments': False, 'recursive': True}
                 )
                 unlock_job.wait_sync()
                 if unlock_job.error or unlock_job.result['failed']:
@@ -2123,6 +2123,7 @@ class PoolDatasetService(CRUDService):
             'unlock_options',
             Bool('key_file', default=False),
             Bool('recursive', default=False),
+            Bool('toggle_attachments', default=False),
             List(
                 'datasets', items=[
                     Dict(
@@ -2248,10 +2249,11 @@ class PoolDatasetService(CRUDService):
                 else:
                     unlocked.append(name)
 
-        self.middleware.call_sync(
-            'pool.dataset.restart_attachment_services_on_unlock',
-            self.__attachments_path(dataset), True, {'locked': False}
-        )
+        if options['toggle_attachments']:
+            self.middleware.call_sync(
+                'pool.dataset.restart_attachment_services_on_unlock',
+                self.__attachments_path(dataset), True, {'locked': False}
+            )
 
         if unlocked:
             def dataset_data(unlocked_dataset):
